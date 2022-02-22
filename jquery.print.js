@@ -1,92 +1,49 @@
-/* @license 
- * jQuery.print, version 1.5.1 -- Forked By Sean Thompson
- *  (c) Sathvik Ponangi, Doers' Guild
- * Licence: CC-By (http://creativecommons.org/licenses/by/3.0/)
- *--------------------------------------------------------------------------*/
-
-// -- MDN Polyfill - https://stackoverflow.com/questions/20428877/javascript-remove-doesnt-work-in-ie -- //
-(function (arr) {
-    arr.forEach(function (item) {
-        if (item.hasOwnProperty('remove')) {
-            return;
-        }
-        Object.defineProperty(item, 'remove', {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        value: function remove() {
-            this.parentNode.removeChild(this);
-        }
+// ==UserScript==
+// @name         五百丁简历下载
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  五百丁简历通过打印方式转存为PDF
+// @author       7122409
+// @match        *https://www.500d.me/newcvresume/edit/?itemid=81&resumeId=9557206
+// @grant        none
+// ==/UserScript==
+ 
+(function () {
+    'use strict';
+ 
+    // Your code here...
+    let print_btn = document.querySelector('#cvresumePrintBtn');
+    print_btn.id = "download";
+    print_btn.className = "header_print_btn";
+    print_btn.addEventListener("click", function () {
+        let css_path = this.getAttribute("data-css");
+        var print_html = '<div class="printtips_img"></div>' +
+            '<p>1、在打印设置中将边距设置为 <span>“无”</span></p >' +
+            '<p>2、然后请勾选 <span>“背景图形”</span></p >';
+        common.main.resume_confirm({
+            title: "打印提示",
+            content_html: print_html,
+            modal_class: "resume_printtips_modal",
+            ok: '知道了，去打印',
+            onOk: function () {
+                var version = new Date().getTime();
+                // 打印时隐藏其他内容
+                $("#resume_base .baseItem-toolbar").addClass("hidden");
+                $("#resume_base .date_select").addClass("hidden");
+                $("#resume_base .page_tips").addClass("hidden");
+                $("#resume_base").print({
+                    globalStyles: false,//是否包含父文档的样式，默认为true
+                    stylesheet: [
+                        "/resources/500d/cvresume/css/base_template.css?v=" + version,
+                        "/resources/500d/cvresume/css/parts_css.css?v=" + version,
+                        "/resources/500d/cvresume/css/export.css?v=" + version,
+                        css_path + '?v=' + version,
+                    ]//外部样式表的URL地址，默认为null
+                });
+                $("#resume_base .baseItem-toolbar").removeClass("hidden");
+                $("#resume_base .date_select").removeClass("hidden");
+                $("#resume_base .page_tips").removeClass("hidden");
+            }
         });
-});
-})([Element.prototype, CharacterData.prototype, DocumentType.prototype]);
-  
-(function($){
-    "use strict";
-  
-    function createIframe(htmlContent){
-        var deferred = $.Deferred();
-        var printIframe = $('<iframe id="printableIframe" style="top: -999px; left: -999px; position: absolute; height: 0; width: 0; border: 0;">', {
-            doctype: '<!doctype html>',
-        }).prependTo('body');
-
-        printIframe.load(deferred.resolve);
-        
-        var iframeContent = document.getElementById('printableIframe');
-        var iframeWindow = iframeContent.contentWindow || iframeContent.contentDocument || iframeContent;
-        var writeIframe = iframeWindow.document || iframeWindow.contentDocument || iframeWindow;
-        writeIframe.open();
-        writeIframe.write(htmlContent);
-        writeIframe.close();
-
-        return deferred.promise();
-    }
-
-    // -- Dom Node Object Test; Encountered This Issue With I.E. -- //
-    function isNode(o) {
-        /* http://stackoverflow.com/a/384380/937891 */
-        return !!(typeof Node === "object" ? o instanceof Node : o && typeof o === "object" && typeof o.nodeType === "number" && typeof o.nodeName === "string");
-    }
-  
-    $.selectHtmlPrint = $.fn.selectHtmlPrint = function() {
-        var selectHtmlPrintPromise = $.Deferred();
-        var self = this;
-        var $this;
-
-        if (self instanceof $){
-            self = self.get(0);
-        }
-
-        if (isNode(self)){
-            $this = $(self);
-        } else {
-        $this = $("html");
-        }
-  
-        var htmlContentCopy = $this.clone();
-        var $styles = $('');
-        $styles = $("style, link, meta, base, title");
-        htmlContentCopy = $('<span/>').append(htmlContentCopy);
-        htmlContentCopy.append($styles.clone());
-        htmlContentCopy.find('.no-print').remove();
-  
-        var htmlContentCopyIframe = htmlContentCopy.html();
-        if(!document.getElementById("printableIframe")){
-            $.when(createIframe(htmlContentCopyIframe)).then(function(){
-                setTimeout(function(){
-                    document.getElementById("printableIframe").contentWindow.focus();
-                    document.getElementById("printableIframe").contentWindow.print();
-                    document.getElementsByTagName('body')[0].focus();
-                    selectHtmlPrintPromise.resolve(document.getElementById("printableIframe").remove());
-                }, 500);
-            }, function(){
-                //Fail 
-                console.log('Failed to print from the iframe.');
-            });
-        }
-        
-        htmlContentCopy.remove();
-        return selectHtmlPrintPromise.promise();
-    }
-  
-}(jQuery));
+    })
+})();
